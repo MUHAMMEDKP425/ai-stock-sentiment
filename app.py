@@ -1,7 +1,7 @@
 import streamlit as st
-from src.finbert_model import FinBERT
-from src.news_fetcher import fetch_latest_news
-from src.llm_gemini import summarize_and_sentiment_gemini
+from finbert_model import FinBERT
+from news_fetcher import fetch_latest_news
+from llm_gemini import summarize_and_sentiment_gemini
 import os
 
 st.set_page_config(page_title="AI Stock Market Analyzer", layout="wide")
@@ -45,4 +45,4 @@ if st.button("Analyze Sentiment"):
                 st.write(summary)
             except Exception as e:
                 st.warning("⚠ Gemini API key missing or invalid.")
-                st.write(e)
+                st.write(str(e))
