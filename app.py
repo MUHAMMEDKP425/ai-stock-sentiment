@@ -16,6 +16,17 @@ from finbert_model import FinBERT
 from news_fetcher import fetch_latest_news
 from llm_gemini import summarize_and_sentiment_gemini
 
+st.markdown("""
+<style>
+input[type="text"] {
+    border: 2px solid #4b7bec !important;
+    border-radius: 10px !important;
+    padding: 10px !important;
+    font-size: 16px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.set_page_config(page_title="AI Stock Sentiment Dashboard", layout="wide", initial_sidebar_state="expanded")
 
 # -------------------------
