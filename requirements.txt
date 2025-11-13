@@ -4,7 +4,7 @@ torch
 scipy
 pandas
 numpy
-requests
-beautifulsoup4
-google-generativeai
+yfinance
 plotly
+requests
+google-generativeai
