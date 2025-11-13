@@ -11,7 +11,7 @@ from stock_list import stock_symbols
 
 
 # -------------------------------
-# UI CSS (search bar styling)
+# Simple CSS for search bar
 # -------------------------------
 st.markdown("""
 <style>
@@ -24,9 +24,7 @@ input[type="text"] {
 </style>
 """, unsafe_allow_html=True)
 
-
 st.set_page_config(page_title="AI Stock Market Analyzer", layout="wide")
-
 
 # -------------------------------
 # Title
@@ -35,33 +33,59 @@ st.title("📊 AI Stock Market Sentiment Analyzer")
 
 
 # -------------------------------
-# SEARCH BAR WITH AUTOCOMPLETE
+# 🔥 TRENDING STOCKS SECTION
+# -------------------------------
+st.markdown("## 🔥 Trending Stocks Today")
+
+trending_stocks = [
+    ("TSLA", "Tesla"),
+    ("AAPL", "Apple"),
+    ("NVDA", "NVIDIA"),
+    ("META", "Meta"),
+    ("AMZN", "Amazon"),
+    ("GOOG", "Alphabet"),
+    ("TCS", "Tata Consultancy Services"),
+    ("RELIANCE", "Reliance Industries"),
+]
+
+cols = st.columns(4)
+
+ticker = None  # will be set when user clicks
+
+for i, (symbol, name) in enumerate(trending_stocks):
+    with cols[i % 4]:
+        if st.button(f"{symbol} – {name}"):
+            ticker = symbol
+            st.success(f"Selected Trending Stock: {symbol}")
+
+
+# -------------------------------
+# SEARCH BAR WITH SUGGESTIONS
 # -------------------------------
 st.subheader("🔎 Search Stock")
 
 query = st.text_input("Type ticker or company name...")
 
-ticker = None
-suggestions = []
+if not ticker:   # only use search bar if user didn't click trending
+    suggestions = []
+    selected = None
 
-if query:
-    q_upper = query.upper()
-    for symbol, name in stock_symbols.items():
-        if q_upper in symbol or query.lower() in name.lower():
-            suggestions.append(f"{symbol} – {name}")
+    if query:
+        q_upper = query.upper()
+        for symbol, name in stock_symbols.items():
+            if q_upper in symbol or query.lower() in name.lower():
+                suggestions.append(f"{symbol} – {name}")
 
-if suggestions:
-    st.write("### Suggestions:")
-    for s in suggestions:
-        if st.button(s):
-            ticker = s.split(" – ")[0]
-else:
-    ticker = st.text_input("Or enter ticker manually:", value="TSLA")
+    if suggestions:
+        st.write("### Suggestions:")
+        for s in suggestions:
+            if st.button(s):
+                ticker = s.split(" – ")[0]
+                st.success(f"Selected: {ticker}")
+                selected = True
 
-
-# If still empty
-if not ticker:
-    st.stop()
+    if not ticker:
+        ticker = st.text_input("Or enter ticker manually:", value="TSLA")
 
 
 # -------------------------------
@@ -90,13 +114,18 @@ if st.button("Analyze Sentiment"):
 
         text = article['text'] or article['title']
 
+        # -------------------------------
         # FinBERT Sentiment
+        # -------------------------------
         st.markdown("### 🔍 FinBERT Sentiment Analysis")
         finbert_result = finbert.analyze_text(text)
         st.json(finbert_result)
 
+        # -------------------------------
         # Gemini Summary
+        # -------------------------------
         st.markdown("### 🤖 Gemini AI Summary & Sentiment")
+
         try:
             summary = summarize_and_sentiment_gemini(text)
             st.write(summary)
@@ -109,7 +138,6 @@ if st.button("Analyze Sentiment"):
             "link": article['link'],
             "finbert": finbert_result
         })
-
 
     # -------------------------------
     # PRICE CHART
@@ -124,7 +152,5 @@ if st.button("Analyze Sentiment"):
         st.plotly_chart(fig, use_container_width=True)
     except:
         st.warning("Unable to fetch price data.")
-
-
 
     st.success("Analysis Completed!")
