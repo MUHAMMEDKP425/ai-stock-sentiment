@@ -37,7 +37,7 @@ st.set_page_config(page_title="AI Stock Sentiment Analyzer", layout="wide")
 
 
 # ------------------------------------------------
-# MAIN TITLE UI
+# TITLE UI
 # ------------------------------------------------
 st.markdown("""
     <style>
@@ -57,7 +57,7 @@ st.markdown("""
             font-size: 17px;
             text-align: center;
             color: #777777;
-            margin-bottom: 35px;
+            margin-bottom: 30px;
         }
         .card {
             background: #ffffff;
@@ -76,68 +76,42 @@ st.markdown("<p class='desc-text'>Powered by AI to analyze sentiment, news & tre
 
 
 # ------------------------------------------------
-# 🔥 TRENDING STOCKS
-# ------------------------------------------------
-st.markdown("### 🔥 Trending Stocks Today")
-
-trending_stocks = [
-    ("TSLA", "Tesla"),
-    ("AAPL", "Apple"),
-    ("NVDA", "NVIDIA"),
-    ("META", "Meta"),
-    ("AMZN", "Amazon"),
-    ("GOOG", "Alphabet"),
-    ("TCS", "Tata Consultancy Services"),
-    ("RELIANCE", "Reliance Industries"),
-]
-
-cols = st.columns(4)
-selected_ticker = None
-
-for idx, (symbol, name) in enumerate(trending_stocks):
-    with cols[idx % 4]:
-        if st.button(f"{symbol} – {name}", use_container_width=True):
-            selected_ticker = symbol
-            st.success(f"Selected: {symbol}")
-
-
-# ------------------------------------------------
-# SEARCH BAR
+# SEARCH BAR SECTION
 # ------------------------------------------------
 st.markdown("### 🔎 Search Stock")
 
 col1, col2 = st.columns([3, 1])
 
 with col1:
-    query = st.text_input("Search stock (AAPL, TSLA, TCS...)")
+    query = st.text_input("Enter stock (AAPL, TSLA, TCS...)")
 
 with col2:
     analyze_btn = st.button("Analyze", use_container_width=True)
 
 # Autocomplete suggestions
-if not selected_ticker:
-    suggestions = []
-    if query:
-        for sym, name in stock_symbols.items():
-            if query.upper() in sym or query.lower() in name.lower():
-                suggestions.append(f"{sym} – {name}")
+selected_ticker = None
+suggestions = []
 
-    for s in suggestions:
-        if st.button(s):
-            selected_ticker = s.split(" – ")[0]
+if query:
+    for sym, name in stock_symbols.items():
+        if query.upper() in sym or query.lower() in name.lower():
+            suggestions.append(f"{sym} – {name}")
 
+for s in suggestions:
+    if st.button(s):
+        selected_ticker = s.split(" – ")[0]
 
 if not selected_ticker:
     selected_ticker = query.upper() if query else None
 
 
 # ------------------------------------------------
-# ANALYZE CLICKED
+# RUN ANALYSIS
 # ------------------------------------------------
 if analyze_btn:
 
     if not selected_ticker:
-        st.error("Please enter or select a stock.")
+        st.error("Please enter a valid stock symbol.")
         st.stop()
 
     # Fetch news
@@ -150,20 +124,19 @@ if analyze_btn:
 
     st.markdown(f"## {selected_ticker} – AI Sentiment Analysis")
 
-    # Start Card
+    # CARD START
     st.markdown("<div class='card'>", unsafe_allow_html=True)
 
     finbert = FinBERT()
     summaries = []
 
-    # Process articles
     final_score = 0
     final_label = "Neutral"
 
     for article in articles:
         text = article["text"] or article["title"]
 
-        # FinBERT result
+        # FinBERT sentiment
         result = finbert.analyze_text(text)
         pos_score = result["scores"]["positive"]
         final_score = pos_score * 100
@@ -175,7 +148,7 @@ if analyze_btn:
         else:
             final_label = "Neutral"
 
-        # Gemini summary
+        # Gemini AI summary
         try:
             summary = summarize_and_sentiment_gemini(text)
         except:
@@ -183,17 +156,18 @@ if analyze_btn:
 
         summaries.append(summary)
 
-    # Sentiment Score
+    # SENTIMENT BAR
     st.write("### Sentiment Score")
     st.progress(final_score / 100)
     st.write(f"**{final_label} ({final_score:.0f}%)**")
 
-    # Summary
+    # SUMMARY TEXT
     st.write("### Analysis Summary")
     for s in summaries:
         st.write(s)
         st.write("---")
 
+    # CARD END
     st.markdown("</div>", unsafe_allow_html=True)
 
 
