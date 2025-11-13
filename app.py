@@ -1,8 +1,6 @@
 import streamlit as st
-import pandas as pd
-import plotly.graph_objects as go
 import yfinance as yf
-import os
+import plotly.graph_objects as go
 
 from finbert_model import FinBERT
 from news_fetcher import fetch_latest_news
@@ -10,147 +8,176 @@ from llm_gemini import summarize_and_sentiment_gemini
 from stock_list import stock_symbols
 
 
-# -------------------------------
-# Simple CSS for search bar
-# -------------------------------
+# -----------------------------
+# Page Settings
+# -----------------------------
+st.set_page_config(page_title="AI Stock Sentiment Analyzer", layout="wide")
+
+
+# -----------------------------
+# CSS for Clean White UI
+# -----------------------------
 st.markdown("""
 <style>
+
+body {
+    background-color: #ffffff !important;
+}
+
+/* Title styling */
+.main-title {
+    font-size: 45px;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 0px;
+}
+
+.sub-title {
+    font-size: 20px;
+    text-align: center;
+    color: #777777;
+    margin-top: -10px;
+    margin-bottom: 30px;
+}
+
+/* Card container */
+.card {
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 18px;
+    border: 1px solid #dddddd;
+    box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
+    margin-bottom: 25px;
+}
+
+/* Search box */
 input[type="text"] {
-    border: 2px solid #4b7bec !important;
     border-radius: 10px !important;
     padding: 10px !important;
-    font-size: 16px !important;
+    border: 1.5px solid #cccccc !important;
+    background-color: #f9f9f9 !important;
 }
+
+/* Progress bar */
+.stProgress > div > div > div {
+    background-color: #4b7bec !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
-st.set_page_config(page_title="AI Stock Market Analyzer", layout="wide")
 
-# -------------------------------
-# Title
-# -------------------------------
-st.title("📊 AI Stock Market Sentiment Analyzer")
-
-
-# -------------------------------
-# 🔥 TRENDING STOCKS SECTION
-# -------------------------------
-st.markdown("## 🔥 Trending Stocks Today")
-
-trending_stocks = [
-    ("TSLA", "Tesla"),
-    ("AAPL", "Apple"),
-    ("NVDA", "NVIDIA"),
-    ("META", "Meta"),
-    ("AMZN", "Amazon"),
-    ("GOOG", "Alphabet"),
-    ("TCS", "Tata Consultancy Services"),
-    ("RELIANCE", "Reliance Industries"),
-]
-
-cols = st.columns(4)
-
-ticker = None  # will be set when user clicks
-
-for i, (symbol, name) in enumerate(trending_stocks):
-    with cols[i % 4]:
-        if st.button(f"{symbol} – {name}"):
-            ticker = symbol
-            st.success(f"Selected Trending Stock: {symbol}")
+# -----------------------------
+# TITLES
+# -----------------------------
+st.markdown("<h1 class='main-title'>AI Stock Market</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='sub-title' style='color:#4b7bec;'>Sentiment Analyzer</h1>", unsafe_allow_html=True)
+st.markdown("<p class='sub-title'>Powered by AI to analyze sentiment, news & trends for any stock.</p>", unsafe_allow_html=True)
 
 
-# -------------------------------
-# SEARCH BAR WITH SUGGESTIONS
-# -------------------------------
-st.subheader("🔎 Search Stock")
+# -----------------------------
+# SEARCH BAR
+# -----------------------------
+col_search, col_btn = st.columns([3, 1])
 
-query = st.text_input("Type ticker or company name...")
+with col_search:
+    query = st.text_input("Search stock (AAPL, TSLA, TCS...)")
 
-if not ticker:   # only use search bar if user didn't click trending
-    suggestions = []
-    selected = None
+selected_ticker = None
 
-    if query:
-        q_upper = query.upper()
-        for symbol, name in stock_symbols.items():
-            if q_upper in symbol or query.lower() in name.lower():
-                suggestions.append(f"{symbol} – {name}")
+# Suggestion dropdown
+suggestions = []
+if query:
+    q = query.upper()
+    for sym, name in stock_symbols.items():
+        if q in sym or query.lower() in name.lower():
+            suggestions.append(f"{sym} – {name}")
 
-    if suggestions:
-        st.write("### Suggestions:")
-        for s in suggestions:
-            if st.button(s):
-                ticker = s.split(" – ")[0]
-                st.success(f"Selected: {ticker}")
-                selected = True
+if suggestions:
+    for s in suggestions:
+        if st.button(s):
+            selected_ticker = s.split(" – ")[0]
 
-    if not ticker:
-        ticker = st.text_input("Or enter ticker manually:", value="TSLA")
+# If no suggestion selected, fallback:
+if not selected_ticker:
+    selected_ticker = query.upper() if query else "AAPL"
+
+analyze = col_btn.button("Analyze", use_container_width=True)
 
 
-# -------------------------------
-# Analyze Button
-# -------------------------------
-if st.button("Analyze Sentiment"):
+# -----------------------------
+# RUN ANALYSIS
+# -----------------------------
+if analyze:
 
-    # Fetch News
+    # Fetch news
     with st.spinner("Fetching latest news..."):
-        articles = fetch_latest_news(ticker.upper(), max_articles=5)
+        articles = fetch_latest_news(selected_ticker, max_articles=3)
 
-    if not articles:
-        st.error("No news found for this ticker. Try another one.")
-        st.stop()
+    st.markdown(f"<h2>{selected_ticker} – AI Sentiment Analysis</h2>", unsafe_allow_html=True)
 
-    st.success(f"Fetched {len(articles)} articles successfully!")
+    # Create card container
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
 
     finbert = FinBERT()
-    results = []
 
-    # Process each article
+    final_sentiment_score = 0
+    final_sentiment_label = "Neutral"
+
+    summaries = []
+
     for article in articles:
+        text = article["text"] or article["title"]
+        
+        # FinBERT score
+        result = finbert.analyze_text(text)
+        score = result["scores"]["positive"]
+        final_sentiment_score = score * 100
 
-        st.markdown("### 📰 " + article['title'])
-        st.markdown(f"[Read full article]({article['link']})")
+        if score > 0.55:
+            final_sentiment_label = "Positive"
+        elif score < 0.45:
+            final_sentiment_label = "Negative"
+        else:
+            final_sentiment_label = "Neutral"
 
-        text = article['text'] or article['title']
-
-        # -------------------------------
-        # FinBERT Sentiment
-        # -------------------------------
-        st.markdown("### 🔍 FinBERT Sentiment Analysis")
-        finbert_result = finbert.analyze_text(text)
-        st.json(finbert_result)
-
-        # -------------------------------
         # Gemini Summary
-        # -------------------------------
-        st.markdown("### 🤖 Gemini AI Summary & Sentiment")
-
         try:
-            summary = summarize_and_sentiment_gemini(text)
-            st.write(summary)
-        except Exception as e:
-            st.warning("⚠ Gemini API key missing or invalid.")
-            st.write(e)
+            ai_summary = summarize_and_sentiment_gemini(text)
+        except:
+            ai_summary = "Gemini API key missing."
 
-        results.append({
-            "title": article['title'],
-            "link": article['link'],
-            "finbert": finbert_result
-        })
+        summaries.append(ai_summary)
 
-    # -------------------------------
+    # -----------------------------
+    # SENTIMENT BAR
+    # -----------------------------
+    st.write("### Sentiment Score")
+    st.progress(final_sentiment_score / 100)
+    st.write(f"**{final_sentiment_label} ({final_sentiment_score:.0f}%)**")
+
+    # -----------------------------
+    # SUMMARY SECTION
+    # -----------------------------
+    st.write("### Analysis Summary")
+    for s in summaries:
+        st.write(s)
+        st.write("---")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # -----------------------------
     # PRICE CHART
-    # -------------------------------
-    st.markdown("## 📈 Stock Price History")
-
+    # -----------------------------
     try:
-        data = yf.Ticker(ticker).history(period="3mo")
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=data.index, y=data["Close"], mode="lines", name="Close Price"))
-        fig.update_layout(title=f"{ticker} Price (Last 3 Months)", xaxis_title="Date", yaxis_title="Price")
-        st.plotly_chart(fig, use_container_width=True)
-    except:
-        st.warning("Unable to fetch price data.")
+        st.write("### Price Chart")
+        data = yf.Ticker(selected_ticker).history(period="3mo")
 
-    st.success("Analysis Completed!")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=data.index, y=data["Close"], mode="lines"))
+        fig.update_layout(height=350, margin=dict(l=20, r=20, t=20, b=20))
+        st.plotly_chart(fig, use_container_width=True)
+
+    except:
+        st.warning("⚠ Unable to load price data.")
+
