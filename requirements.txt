@@ -1,0 +1,10 @@
+streamlit
+transformers
+torch
+scipy
+pandas
+numpy
+requests
+beautifulsoup4
+google-generativeai
+plotly
