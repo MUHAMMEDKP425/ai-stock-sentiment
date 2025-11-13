@@ -8,6 +8,8 @@ import json
 import io
 import os
 from datetime import datetime
+from stock_list import stock_symbols
+
 
 # Local modules (files in repo root)
 from finbert_model import FinBERT
