@@ -125,7 +125,6 @@ if analyze_btn:
     st.markdown(f"## {selected_ticker} – AI Sentiment Analysis")
 
     # CARD START
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
 
     finbert = FinBERT()
     summaries = []
@@ -168,7 +167,6 @@ if analyze_btn:
         st.write("---")
 
     # CARD END
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
     # ------------------------------------------------
