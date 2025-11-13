@@ -16,30 +16,28 @@ class FinBERT:
     def __init__(self):
         self.tokenizer, self.model, self.device = load_finbert()
 
-    def analyze_text(self, text, max_length=256):
-        # tokenize text
+    def analyze_text(self, text):
         inputs = self.tokenizer(
             text,
             return_tensors="pt",
             truncation=True,
-            max_length=max_length,
-            padding=True
+            padding=True,
+            max_length=256
         )
 
-        # move to CPU/GPU
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
-        # model prediction
         with torch.no_grad():
             outputs = self.model(**inputs)
 
-        # convert logits -> probabilities
         scores = softmax(outputs.logits.cpu().numpy()[0])
-
         labels = ["negative", "neutral", "positive"]
 
         return {
-            "sentiment": labels[scores.argmax()],
+            "sentiment": labels[int(scores.argmax())],
             "scores": {
                 "negative": float(scores[0]),
                 "neutral": float(scores[1]),
+                "positive": float(scores[2])
+            }
+        }
