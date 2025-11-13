@@ -22,7 +22,27 @@ st.set_page_config(page_title="AI Stock Sentiment Dashboard", layout="wide", ini
 # Sidebar - Controls
 # -------------------------
 st.sidebar.header("Dashboard Controls")
-ticker = st.sidebar.text_input("Ticker (e.g. TSLA, AAPL)", value="TSLA")
+# Autocomplete Search Bar
+st.subheader("🔎 Search Stock")
+
+query = st.text_input("Type ticker or company name...")
+
+suggestions = []
+
+if query:
+    query_upper = query.upper()
+    for symbol, name in stock_symbols.items():
+        if query_upper in symbol or query.lower() in name.lower():
+            suggestions.append(f"{symbol} – {name}")
+
+if suggestions:
+    st.write("### Suggestions:")
+    for item in suggestions:
+        if st.button(item):
+            ticker = item.split(" – ")[0]  # extract symbol
+else:
+    ticker = st.text_input("Or enter ticker manually:", value="TSLA")
+
 max_articles = st.sidebar.slider("Max articles to fetch", 1, 8, 5)
 price_period = st.sidebar.selectbox("Price period", ["1mo", "3mo", "6mo", "1y"], index=1)
 use_gemini = st.sidebar.checkbox("Use Gemini for summaries (optional)", value=False)
