@@ -1,0 +1,11 @@
+streamlit
+transformers
+torch
+scipy
+pandas
+numpy
+yfinance
+plotly
+requests
+google-generativeai
+torchvision
