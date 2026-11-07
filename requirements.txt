@@ -9,3 +9,4 @@ plotly
 requests
 google-generativeai
 torchvision
+python-dotenv
